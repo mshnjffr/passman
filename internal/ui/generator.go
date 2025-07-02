@@ -334,13 +334,14 @@ PIN Length: %s`, m.lengthInput.View())
 		settings = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Render(settingsContent)
 	}
 
-	// Password output
+	// Password output with word wrapping for long passphrases
 	var passwordDisplay string
 	if m.generating {
 		passwordDisplay = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("15")).
 			Render(fmt.Sprintf("%s Generating...", m.spinner.View()))
 	} else if m.currentPassword != "" {
+		// Use the current password as-is for now, will wrap after width calculation
 		passwordDisplay = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("15")).
 			Bold(true).
@@ -395,13 +396,22 @@ PIN Length: %s`, m.lengthInput.View())
 		passwordWidth = int(float64(availableWidth) * 0.50)
 	}
 	
-	// Adjust height based on terminal height
+	// Adjust height based on terminal height and content length
 	passwordHeight := 3
+	
+	// Increase height for long passwords (especially memorable passphrases)
+	if m.currentPassword != "" && len(m.currentPassword) > 60 {
+		passwordHeight = 4 // Extra height for very long passphrases
+	}
+	
+	// Adjust for terminal size
 	if m.height < 20 {
-		passwordHeight = 2 // Smaller height for medium terminals
+		if passwordHeight > 2 {
+			passwordHeight = passwordHeight - 1 // Reduce but don't go below minimum
+		}
 	}
 	if m.height < 15 {
-		passwordHeight = 1 // Very small height for small terminals
+		passwordHeight = 2 // Minimum height for very small terminals
 	}
 	
 	// Adjust styling based on terminal size
@@ -434,6 +444,21 @@ PIN Length: %s`, m.lengthInput.View())
 			Width(passwordWidth).
 			Height(passwordHeight).
 			Align(lipgloss.Center, lipgloss.Center)
+	}
+
+	// Apply word wrapping to password display if it's too long
+	if m.currentPassword != "" && len(m.currentPassword) > passwordWidth-4 {
+		wrappedPassword := wrapText(m.currentPassword, passwordWidth-4)
+		passwordDisplay = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("15")).
+			Bold(true).
+			Render(wrappedPassword)
+		// Re-add strength if enabled
+		if m.strength != "" && m.manager != nil && m.manager.Config != nil && m.manager.Config.ShowStrengthMeter {
+			passwordDisplay += "\nStrength: " + lipgloss.NewStyle().
+				Foreground(lipgloss.Color("15")).
+				Render(m.strength)
+		}
 	}
 
 	settingsBox := settingsBoxStyle.Render(settings)
@@ -528,6 +553,46 @@ func (m *GeneratorModel) buildSettingsString() string {
 		return fmt.Sprintf("PIN Length: %s", m.lengthInput.Value())
 	}
 	return ""
+}
+
+// wrapText wraps text to fit within the specified width
+func wrapText(text string, width int) string {
+	if width <= 0 {
+		return text
+	}
+	
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return text
+	}
+	
+	var lines []string
+	var currentLine []string
+	currentLength := 0
+	
+	for _, word := range words {
+		wordLength := len(word)
+		
+		// If adding this word would exceed the width, start a new line
+		if currentLength > 0 && currentLength+1+wordLength > width {
+			lines = append(lines, strings.Join(currentLine, " "))
+			currentLine = []string{word}
+			currentLength = wordLength
+		} else {
+			currentLine = append(currentLine, word)
+			if currentLength > 0 {
+				currentLength += 1 // For the space
+			}
+			currentLength += wordLength
+		}
+	}
+	
+	// Add the last line
+	if len(currentLine) > 0 {
+		lines = append(lines, strings.Join(currentLine, " "))
+	}
+	
+	return strings.Join(lines, "\n")
 }
 
 
