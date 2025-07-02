@@ -55,7 +55,27 @@ A **beautiful**, secure password manager with an elegant terminal UI built with 
 
 ## Installation
 
-### Easy Install with Go (Recommended)
+### 🍺 Homebrew (macOS/Linux)
+
+```bash
+# Add the tap
+brew tap mshnjffr/passman
+
+# Install passman
+brew install passman
+
+# Run from anywhere
+passman
+```
+
+```bash
+# Update to latest version
+brew upgrade passman
+```
+
+> **Advantages**: No Go installation required, automatic dependency management, easy updates
+
+### 🔧 Go Install (Recommended for Go users)
 
 ```bash
 # Install the latest version directly from GitHub
@@ -69,6 +89,8 @@ passman
 # Update to latest version (same command)
 go install github.com/mshnjffr/passman@latest
 ```
+
+> **Advantages**: Always latest version, development builds available, faster installation
 
 > **Note**: Ensure `$GOPATH/bin` (usually `~/go/bin`) is in your PATH. If `passman` command is not found after installation, add Go's bin directory to your PATH:
 > 
