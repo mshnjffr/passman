@@ -55,14 +55,19 @@ A **beautiful**, secure password manager with an elegant terminal UI built with 
 
 ## Installation
 
-### Easy Install with Go
+### Easy Install with Go (Recommended)
 
 ```bash
-# Install directly from GitHub (recommended)
+# Install the latest version directly from GitHub
 go install github.com/mshnjffr/passman@latest
 
-# Run from anywhere (make sure $GOPATH/bin or $GOBIN is in your PATH)
+# Run from anywhere
 passman
+```
+
+```bash
+# Update to latest version (same command)
+go install github.com/mshnjffr/passman@latest
 ```
 
 > **Note**: Ensure `$GOPATH/bin` (usually `~/go/bin`) is in your PATH. Add this to your shell profile if needed:
@@ -82,6 +87,16 @@ go build -o passman
 
 # Run the application
 ./passman
+```
+
+### Alternative Installation Methods
+
+```bash
+# Install specific version
+go install github.com/mshnjffr/passman@v1.0.1
+
+# Install from main branch (development)
+go install github.com/mshnjffr/passman@main
 ```
 
 ### Dependencies
