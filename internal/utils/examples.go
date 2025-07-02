@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"passman/internal/config"
-	"passman/internal/generator"
+	"github.com/mshnjffr/passman/internal/config"
+	"github.com/mshnjffr/passman/internal/generator"
 )
 
 // Example demonstrates how to use the utility systems

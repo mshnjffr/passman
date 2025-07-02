@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"passman/internal/utils"
+	"github.com/mshnjffr/passman/internal/utils"
 )
 
 var baseStyle = lipgloss.NewStyle().

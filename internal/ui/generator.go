@@ -12,8 +12,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"passman/internal/generator"
-	"passman/internal/utils"
+	"github.com/mshnjffr/passman/internal/generator"
+	"github.com/mshnjffr/passman/internal/utils"
 )
 
 // GeneratorModel represents the password generation screen

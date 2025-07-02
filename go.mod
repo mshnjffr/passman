@@ -1,4 +1,4 @@
-module passman
+module github.com/mshnjffr/passman
 
 go 1.24.1
 

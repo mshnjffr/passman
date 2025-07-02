@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"passman/internal/utils"
+	"github.com/mshnjffr/passman/internal/utils"
 )
 
 // SettingsModel represents the settings screen

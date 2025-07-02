@@ -2,7 +2,7 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"passman/internal/utils"
+	"github.com/mshnjffr/passman/internal/utils"
 )
 
 // NewModel creates and returns the initial menu model

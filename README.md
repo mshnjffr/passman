@@ -55,6 +55,16 @@ A **beautiful**, secure password manager with an elegant terminal UI built with 
 
 ## Installation
 
+### Easy Install with Go
+
+```bash
+# Install directly from GitHub (recommended)
+go install github.com/mshnjffr/passman@latest
+
+# Run from anywhere
+passman
+```
+
 ### Build from Source
 
 ```bash
@@ -71,8 +81,9 @@ go build -o passman
 
 ### Dependencies
 
-- Go 1.21 or later
+- Go 1.21 or later (required for installation)
 - Terminal with Unicode support
+- Git (for building from source)
 - Optional: `xclip` (Linux) or `pbcopy` (macOS) for clipboard support
 
 ## Usage
@@ -81,20 +92,20 @@ go build -o passman
 
 ```bash
 # Start the interactive TUI
-./passman
+passman
 
 # Show version and help
-./passman --help
-./passman --version
+passman --help
+passman --version
 
 # Test system components
-./passman --test
+passman --test
 
 # Reset configuration to defaults
-./passman --reset
+passman --reset
 
 # Enable debug logging
-./passman --debug
+passman --debug
 ```
 
 ### Keyboard Shortcuts

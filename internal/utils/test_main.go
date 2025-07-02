@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"passman/internal/config"
-	"passman/internal/utils"
+	"github.com/mshnjffr/passman/internal/config"
+	"github.com/mshnjffr/passman/internal/utils"
 )
 
 func main() {

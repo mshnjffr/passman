@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 	"os"
-	"passman/internal/config"
+	"github.com/mshnjffr/passman/internal/config"
 )
 
 // Manager centralizes access to all utility systems

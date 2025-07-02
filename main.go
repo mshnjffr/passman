@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"passman/internal/config"
-	"passman/internal/generator"
-	"passman/internal/ui"
-	"passman/internal/utils"
+	"github.com/mshnjffr/passman/internal/config"
+	"github.com/mshnjffr/passman/internal/generator"
+	"github.com/mshnjffr/passman/internal/ui"
+	"github.com/mshnjffr/passman/internal/utils"
 )
 
 const (
