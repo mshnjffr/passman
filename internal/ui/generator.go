@@ -400,8 +400,12 @@ PIN Length: %s`, m.lengthInput.View())
 	passwordHeight := 3
 	
 	// Increase height for long passwords (especially memorable passphrases)
-	if m.currentPassword != "" && len(m.currentPassword) > 60 {
-		passwordHeight = 4 // Extra height for very long passphrases
+	if m.currentPassword != "" {
+		if m.generatorType == "memorable" || len(m.currentPassword) > 60 {
+			passwordHeight = 5 // More height for memorable passphrases
+		} else if len(m.currentPassword) > 40 {
+			passwordHeight = 4 // Extra height for long passwords
+		}
 	}
 	
 	// Adjust for terminal size
@@ -446,9 +450,39 @@ PIN Length: %s`, m.lengthInput.View())
 			Align(lipgloss.Center, lipgloss.Center)
 	}
 
-	// Apply word wrapping to password display if it's too long
-	if m.currentPassword != "" && len(m.currentPassword) > passwordWidth-4 {
-		wrappedPassword := wrapText(m.currentPassword, passwordWidth-4)
+	// Apply word wrapping for long passwords, especially memorable passphrases
+	if m.currentPassword != "" && (len(m.currentPassword) > 50 || m.generatorType == "memorable") {
+		wrapWidth := passwordWidth - 8 // Conservative padding for borders and alignment
+		wrappedPassword := wrapText(m.currentPassword, wrapWidth)
+		
+		// Calculate how many lines the wrapped text will have
+		lines := strings.Split(wrappedPassword, "\n")
+		if len(lines) > 1 {
+			// Increase height for multi-line content
+			newHeight := len(lines) + 1 // +1 for strength if shown
+			if newHeight > passwordHeight {
+				passwordHeight = newHeight
+				// Re-create the password box style with new height
+				if m.width < 40 {
+					passwordBoxStyle = lipgloss.NewStyle().
+						Border(lipgloss.NormalBorder()).
+						BorderForeground(lipgloss.Color("15")).
+						Padding(0, 1).
+						Width(passwordWidth).
+						Height(passwordHeight).
+						Align(lipgloss.Center, lipgloss.Center)
+				} else {
+					passwordBoxStyle = lipgloss.NewStyle().
+						Border(lipgloss.RoundedBorder()).
+						BorderForeground(lipgloss.Color("15")).
+						Padding(1, 2).
+						Width(passwordWidth).
+						Height(passwordHeight).
+						Align(lipgloss.Center, lipgloss.Center)
+				}
+			}
+		}
+		
 		passwordDisplay = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("15")).
 			Bold(true).
