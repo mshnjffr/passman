@@ -70,9 +70,35 @@ passman
 go install github.com/mshnjffr/passman@latest
 ```
 
-> **Note**: Ensure `$GOPATH/bin` (usually `~/go/bin`) is in your PATH. Add this to your shell profile if needed:
+> **Note**: Ensure `$GOPATH/bin` (usually `~/go/bin`) is in your PATH. If `passman` command is not found after installation, add Go's bin directory to your PATH:
+> 
+> **For Zsh (most common on macOS):**
 > ```bash
+> # Open your zsh configuration file
+> nano ~/.zshrc
+> 
+> # Add this line at the end of the file
 > export PATH="$PATH:$(go env GOPATH)/bin"
+> 
+> # Save and reload your shell configuration
+> source ~/.zshrc
+> ```
+>
+> **For Bash:**
+> ```bash
+> # Open your bash configuration file
+> nano ~/.bashrc   # or ~/.bash_profile on macOS
+> 
+> # Add this line at the end of the file
+> export PATH="$PATH:$(go env GOPATH)/bin"
+> 
+> # Save and reload your shell configuration
+> source ~/.bashrc   # or source ~/.bash_profile
+> ```
+>
+> **Quick one-liner for Zsh:**
+> ```bash
+> echo 'export PATH="$PATH:$(go env GOPATH)/bin"' >> ~/.zshrc && source ~/.zshrc
 > ```
 
 ### Build from Source
