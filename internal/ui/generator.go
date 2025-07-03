@@ -16,6 +16,8 @@ import (
 	"github.com/mshnjffr/passman/internal/utils"
 )
 
+type clearGeneratorStatusMsg struct{}
+
 // GeneratorModel represents the password generation screen
 type GeneratorModel struct {
 	generatorType   string
@@ -90,6 +92,14 @@ func (m *GeneratorModel) Init() tea.Cmd {
 	return m.spinner.Tick
 }
 
+// NewGeneratorModelWithSize creates a new generator model with specified dimensions
+func NewGeneratorModelWithSize(genType string, manager *utils.Manager, width, height int) *GeneratorModel {
+	model := NewGeneratorModel(genType, manager)
+	model.width = width
+	model.height = height
+	return model
+}
+
 func (m *GeneratorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -102,9 +112,9 @@ func (m *GeneratorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			return NewMenuModel(m.manager), nil
+			return NewMenuModelWithSize(m.manager, m.width, m.height), nil
 		case "esc":
-			return NewMenuModel(m.manager), nil
+			return NewMenuModelWithSize(m.manager, m.width, m.height), nil
 		case "enter", "g":
 			if !m.generating {
 				m.generating = true
@@ -296,13 +306,55 @@ func (m *GeneratorModel) View() string {
 	var settings string
 	if m.generatorType == "random" {
 		var focusHint string
-		if m.lengthInput.Focused() {
-			focusHint = " (Press Tab to toggle character types)"
+		if m.width < 60 {
+			// Shorter hints for small terminals
+			if m.lengthInput.Focused() {
+				focusHint = " (Tab: types)"
+			} else {
+				focusHint = " (Tab: edit)"
+			}
+		} else if m.width < 90 {
+			// Medium hints
+			if m.lengthInput.Focused() {
+				focusHint = " (Tab: toggle types)"
+			} else {
+				focusHint = " (Tab: edit length)"
+			}
 		} else {
-			focusHint = " (Press Tab to edit length)"
+			// Full hints for large terminals
+			if m.lengthInput.Focused() {
+				focusHint = " (Press Tab to toggle character types)"
+			} else {
+				focusHint = " (Press Tab to edit length)"
+			}
 		}
 		
-		settingsContent := fmt.Sprintf(`Settings:
+		var settingsContent string
+		if m.width < 60 {
+			// Compact layout for small terminals  
+			settingsContent = fmt.Sprintf(`Length: %s%s
+Types: %s %s %s %s`,
+				m.lengthInput.View(),
+				focusHint,
+				checkbox("L", m.includeLower),
+				checkbox("U", m.includeUpper),
+				checkbox("N", m.includeNumbers),
+				checkbox("S", m.includeSymbols))
+		} else if m.width < 90 {
+			// Medium compact layout for most terminals
+			settingsContent = fmt.Sprintf(`Settings:
+Length: %s%s
+Types: %s %s
+       %s %s`,
+				m.lengthInput.View(),
+				focusHint,
+				checkbox("Lower(l)", m.includeLower),
+				checkbox("Upper(u)", m.includeUpper),
+				checkbox("Nums(n)", m.includeNumbers),
+				checkbox("Syms(s)", m.includeSymbols))
+		} else {
+			// Full layout for very large terminals only
+			settingsContent = fmt.Sprintf(`Settings:
 Length: %s%s
 
 Character Types:
@@ -310,12 +362,13 @@ Character Types:
 %s
 %s
 %s`,
-			m.lengthInput.View(),
-			focusHint,
-			checkbox("Lowercase (l)", m.includeLower),
-			checkbox("Uppercase (u)", m.includeUpper),
-			checkbox("Numbers (n)", m.includeNumbers),
-			checkbox("Symbols (s)", m.includeSymbols))
+				m.lengthInput.View(),
+				focusHint,
+				checkbox("Lowercase (l)", m.includeLower),
+				checkbox("Uppercase (u)", m.includeUpper),
+				checkbox("Numbers (n)", m.includeNumbers),
+				checkbox("Symbols (s)", m.includeSymbols))
+		}
 		settings = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Render(settingsContent)
 	} else if m.generatorType == "memorable" {
 		var focusHint string
@@ -358,12 +411,27 @@ PIN Length: %s`, m.lengthInput.View())
 			Render("Press Enter to generate a password")
 	}
 
-	// Helper commands at bottom like main menu
-	help := subtleStyle.Render("enter/g: generate") + dotStyle +
-		subtleStyle.Render("tab: toggle focus") + dotStyle +
-		subtleStyle.Render("l/u/n/s: toggle types") + dotStyle +
-		subtleStyle.Render("c: copy") + dotStyle +
-		subtleStyle.Render("esc: back")
+	// Helper commands at bottom like main menu - make compact for small terminals
+	var help string
+	if m.width < 60 {
+		// Compact help for small terminals
+		help = subtleStyle.Render("g: gen") + dotStyle +
+			subtleStyle.Render("c: copy") + dotStyle +
+			subtleStyle.Render("esc: back")
+	} else if m.width < 90 {
+		// Medium help
+		help = subtleStyle.Render("enter: generate") + dotStyle +
+			subtleStyle.Render("tab: focus") + dotStyle +
+			subtleStyle.Render("c: copy") + dotStyle +
+			subtleStyle.Render("esc: back")
+	} else {
+		// Full help for larger terminals
+		help = subtleStyle.Render("enter/g: generate") + dotStyle +
+			subtleStyle.Render("tab: toggle focus") + dotStyle +
+			subtleStyle.Render("l/u/n/s: toggle types") + dotStyle +
+			subtleStyle.Render("c: copy") + dotStyle +
+			subtleStyle.Render("esc: back")
+	}
 
 	// Status
 	status := ""
@@ -376,22 +444,32 @@ PIN Length: %s`, m.lengthInput.View())
 	// Calculate responsive box sizes based on terminal width
 	var settingsWidth, passwordWidth int
 	
-	if m.width < 40 {
-		// Very small terminals - minimal padding
+	if m.width < 30 {
+		// Extremely small terminals - minimal styling
 		settingsWidth = m.width - 2
 		passwordWidth = m.width - 2
-	} else if m.width < 60 {
-		// Small terminals - compact layout  
+		if settingsWidth < 15 {
+			settingsWidth = 15
+		}
+		if passwordWidth < 15 {
+			passwordWidth = 15
+		}
+	} else if m.width < 50 {
+		// Very small terminals - compact layout
 		settingsWidth = m.width - 4
 		passwordWidth = m.width - 4
-	} else if m.width < 80 {
+	} else if m.width < 70 {
+		// Small terminals - compact layout  
+		settingsWidth = m.width - 6
+		passwordWidth = m.width - 6
+	} else if m.width < 90 {
 		// Medium sized terminals - vertical layout
-		availableWidth := m.width - 6
+		availableWidth := m.width - 8
 		settingsWidth = availableWidth - 2
 		passwordWidth = availableWidth - 2
 	} else {
 		// Large terminals - horizontal layout
-		availableWidth := m.width - 6
+		availableWidth := m.width - 8
 		settingsWidth = int(float64(availableWidth) * 0.45)
 		passwordWidth = int(float64(availableWidth) * 0.50)
 	}
@@ -420,8 +498,22 @@ PIN Length: %s`, m.lengthInput.View())
 	
 	// Adjust styling based on terminal size
 	var settingsBoxStyle, passwordBoxStyle lipgloss.Style
-	if m.width < 40 {
-		// Minimal styling for very small terminals
+	if m.width < 30 {
+		// Extremely minimal styling for tiny terminals
+		settingsBoxStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			Padding(0).
+			Width(settingsWidth)
+		passwordBoxStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			Padding(0).
+			Width(passwordWidth).
+			Height(passwordHeight).
+			Align(lipgloss.Center, lipgloss.Center)
+	} else if m.width < 60 {
+		// Minimal styling for small terminals
 		settingsBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
 			BorderForeground(lipgloss.Color("15")).
@@ -450,10 +542,23 @@ PIN Length: %s`, m.lengthInput.View())
 			Align(lipgloss.Center, lipgloss.Center)
 	}
 
-	// Apply word wrapping for long passwords, especially memorable passphrases
-	if m.currentPassword != "" && (len(m.currentPassword) > 50 || m.generatorType == "memorable") {
+	// Apply word wrapping for long passwords (all types, not just memorable)
+	if m.currentPassword != "" {
 		wrapWidth := passwordWidth - 8 // Conservative padding for borders and alignment
-		wrappedPassword := wrapText(m.currentPassword, wrapWidth)
+		if wrapWidth < 10 {
+			wrapWidth = 10 // Minimum wrap width
+		}
+		
+		var wrappedPassword string
+		if m.generatorType == "memorable" {
+			// Use word-based wrapping for memorable passphrases
+			wrappedPassword = wrapText(m.currentPassword, wrapWidth)
+		} else if len(m.currentPassword) > wrapWidth {
+			// Use character-based wrapping for random passwords and PINs
+			wrappedPassword = wrapPasswordChars(m.currentPassword, wrapWidth)
+		} else {
+			wrappedPassword = m.currentPassword
+		}
 		
 		// Calculate how many lines the wrapped text will have
 		lines := strings.Split(wrappedPassword, "\n")
@@ -463,7 +568,15 @@ PIN Length: %s`, m.lengthInput.View())
 			if newHeight > passwordHeight {
 				passwordHeight = newHeight
 				// Re-create the password box style with new height
-				if m.width < 40 {
+				if m.width < 30 {
+					passwordBoxStyle = lipgloss.NewStyle().
+						BorderStyle(lipgloss.NormalBorder()).
+						BorderForeground(lipgloss.Color("240")).
+						Padding(0).
+						Width(passwordWidth).
+						Height(passwordHeight).
+						Align(lipgloss.Center, lipgloss.Center)
+				} else if m.width < 60 {
 					passwordBoxStyle = lipgloss.NewStyle().
 						Border(lipgloss.NormalBorder()).
 						BorderForeground(lipgloss.Color("15")).
@@ -500,12 +613,16 @@ PIN Length: %s`, m.lengthInput.View())
 
 	// Combine boxes - use vertical layout for small terminals
 	var mainContent string
-	if m.width < 80 { // Use vertical layout for most terminals
+	if m.width < 90 { // Use vertical layout for most terminals
 		// Vertical layout for small and medium terminals
+		spacing := ""
+		if m.width >= 30 {
+			spacing = "" // Add minimal spacing for larger small terminals
+		}
 		mainContent = lipgloss.JoinVertical(
 			lipgloss.Left,
 			settingsBox,
-			"",
+			spacing,
 			passwordBox,
 		)
 	} else {
@@ -624,6 +741,24 @@ func wrapText(text string, width int) string {
 	// Add the last line
 	if len(currentLine) > 0 {
 		lines = append(lines, strings.Join(currentLine, " "))
+	}
+	
+	return strings.Join(lines, "\n")
+}
+
+// wrapPasswordChars wraps passwords character by character for random/PIN passwords
+func wrapPasswordChars(password string, width int) string {
+	if width <= 0 || len(password) <= width {
+		return password
+	}
+	
+	var lines []string
+	for i := 0; i < len(password); i += width {
+		end := i + width
+		if end > len(password) {
+			end = len(password)
+		}
+		lines = append(lines, password[i:end])
 	}
 	
 	return strings.Join(lines, "\n")

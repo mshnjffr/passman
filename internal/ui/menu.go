@@ -67,6 +67,14 @@ func NewMenuModel(manager *utils.Manager) *MenuModel {
 	}
 }
 
+// NewMenuModelWithSize creates a new menu model with specified dimensions
+func NewMenuModelWithSize(manager *utils.Manager, width, height int) *MenuModel {
+	model := NewMenuModel(manager)
+	model.width = width
+	model.height = height
+	return model
+}
+
 func (m *MenuModel) Init() tea.Cmd {
 	return nil
 }
@@ -98,15 +106,15 @@ func (m *MenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.quitting = true
 				return m, tea.Quit
 			case "random":
-				return NewGeneratorModel("random", m.manager), nil
+				return NewGeneratorModelWithSize("random", m.manager, m.width, m.height), nil
 			case "memorable":
-				return NewGeneratorModel("memorable", m.manager), nil
+				return NewGeneratorModelWithSize("memorable", m.manager, m.width, m.height), nil
 			case "pin":
-				return NewGeneratorModel("pin", m.manager), nil
+				return NewGeneratorModelWithSize("pin", m.manager, m.width, m.height), nil
 			case "history":
-				return NewHistoryModel(m.manager), nil
+				return NewHistoryModelWithSize(m.manager, m.width, m.height), nil
 			case "settings":
-				return NewSettingsModel(m.manager), nil
+				return NewSettingsModelWithSize(m.manager, m.width, m.height), nil
 			}
 		}
 	}

@@ -84,6 +84,14 @@ func NewSettingsModel(manager *utils.Manager) *SettingsModel {
 	}
 }
 
+// NewSettingsModelWithSize creates a new settings model with specified dimensions
+func NewSettingsModelWithSize(manager *utils.Manager, width, height int) *SettingsModel {
+	model := NewSettingsModel(manager)
+	model.width = width
+	model.height = height
+	return model
+}
+
 func (m *SettingsModel) Init() tea.Cmd {
 	return nil
 }
@@ -98,9 +106,9 @@ func (m *SettingsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			return NewMenuModel(m.manager), nil
+			return NewMenuModelWithSize(m.manager, m.width, m.height), nil
 		case "esc":
-			return NewMenuModel(m.manager), nil
+			return NewMenuModelWithSize(m.manager, m.width, m.height), nil
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--

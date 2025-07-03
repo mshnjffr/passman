@@ -27,21 +27,23 @@ type HistoryModel struct {
 	statusMsg   string
 	filterType  string // "all", "random", "memorable", "pin"
 	allEntries  []utils.HistoryEntry // Cache all entries
+	displayedEntries []utils.HistoryEntry // Currently displayed entries for copying
 }
 
 // NewHistoryModel creates a new history model
 func NewHistoryModel(manager *utils.Manager) *HistoryModel {
+	// Start with minimal default columns
 	columns := []table.Column{
-		{Title: "Time", Width: 12},
-		{Title: "Password", Width: 20},
-		{Title: "Length", Width: 8},
-		{Title: "Type", Width: 12},
+		{Title: "Time", Width: 8},
+		{Title: "Password", Width: 15},
+		{Title: "Length", Width: 4},
+		{Title: "Type", Width: 8},
 	}
 
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithFocused(true),
-		table.WithHeight(10),
+		table.WithHeight(5),
 	)
 
 	s := table.DefaultStyles()
@@ -61,14 +63,20 @@ func NewHistoryModel(manager *utils.Manager) *HistoryModel {
 	model := &HistoryModel{
 		table:      t,
 		manager:    manager,
-		width:      80,  // Default width
-		height:     24,  // Default height
+		width:      40,  // Conservative default for small terminals
+		height:     12,  // Conservative default for small terminals
 		filterType: "all", // Show all types by default
 	}
 	
-	// Initialize table size
+	return model
+}
+
+// NewHistoryModelWithSize creates a new history model with specified dimensions
+func NewHistoryModelWithSize(manager *utils.Manager, width, height int) *HistoryModel {
+	model := NewHistoryModel(manager)
+	model.width = width
+	model.height = height
 	model.updateTableSize()
-	
 	return model
 }
 
@@ -93,14 +101,15 @@ func (m *HistoryModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			return NewMenuModel(m.manager), nil
+			return NewMenuModelWithSize(m.manager, m.width, m.height), nil
 		case "esc":
-			return NewMenuModel(m.manager), nil
+			return NewMenuModelWithSize(m.manager, m.width, m.height), nil
 		case "enter":
-			// Copy selected password to clipboard
-			selectedRow := m.table.SelectedRow()
-			if len(selectedRow) > 1 && m.manager != nil && m.manager.Clipboard != nil {
-				if err := m.manager.Clipboard.Copy(selectedRow[1]); err == nil {
+			// Copy selected password to clipboard (full password, not truncated)
+			selectedIndex := m.table.Cursor()
+			if selectedIndex >= 0 && selectedIndex < len(m.displayedEntries) && m.manager != nil && m.manager.Clipboard != nil {
+				fullPassword := m.displayedEntries[selectedIndex].Password
+				if err := m.manager.Clipboard.Copy(fullPassword); err == nil {
 					m.statusMsg = "Password copied to clipboard!"
 					return m, tea.Batch(cmd, m.clearStatusAfter(2*time.Second))
 				} else {
@@ -155,24 +164,35 @@ func (m *HistoryModel) updateTableSize() {
 		tableHeight = 15
 	}
 
-	// Distribute width among columns
-	timeWidth := 12
-	lengthWidth := 8
-	typeWidth := 12
-	passwordWidth := tableWidth - timeWidth - lengthWidth - typeWidth - 6 // Account for borders/spacing
+	// Calculate responsive column widths
+	var timeWidth, lengthWidth, typeWidth, passwordWidth int
 
-	if passwordWidth < 10 {
-		passwordWidth = 10
-	}
-
-	// Very small terminals - compress everything
-	if m.width < 50 {
+	if m.width < 60 {
+		// Very small terminals
 		timeWidth = 8
 		lengthWidth = 4
-		typeWidth = 6
-		passwordWidth = tableWidth - timeWidth - lengthWidth - typeWidth - 6
-		if passwordWidth < 8 {
-			passwordWidth = 8
+		typeWidth = 8
+		passwordWidth = tableWidth - timeWidth - lengthWidth - typeWidth - 8
+		if passwordWidth < 12 {
+			passwordWidth = 12
+		}
+	} else if m.width < 100 {
+		// Medium terminals
+		timeWidth = 11
+		lengthWidth = 6
+		typeWidth = 10
+		passwordWidth = tableWidth - timeWidth - lengthWidth - typeWidth - 8
+		if passwordWidth < 20 {
+			passwordWidth = 20
+		}
+	} else {
+		// Large terminals
+		timeWidth = 12
+		lengthWidth = 8
+		typeWidth = 12
+		passwordWidth = tableWidth - timeWidth - lengthWidth - typeWidth - 8
+		if passwordWidth < 30 {
+			passwordWidth = 30
 		}
 	}
 
@@ -209,15 +229,34 @@ func (m *HistoryModel) loadHistoryData() {
 		}
 	}
 
+	// Store displayed entries for copying (full passwords)
+	m.displayedEntries = filteredEntries
+
+	// Calculate password display width based on current column width
+	passwordColumnWidth := 20 // Default fallback
+	if len(m.table.Columns()) > 1 {
+		passwordColumnWidth = m.table.Columns()[1].Width
+	}
+
 	// Convert to table rows
 	var rows []table.Row
 	for _, entry := range filteredEntries {
 		timeStr := entry.CreatedAt.Format("Jan 2 15:04")
 		
-		// Truncate password if it's too long for display
+		// Handle password display based on available width
 		password := entry.Password
-		if len(password) > 25 {
-			password = password[:22] + "..."
+		if passwordColumnWidth < 15 {
+			// Very small width - show just first few chars
+			if len(password) > 8 {
+				password = password[:5] + "..."
+			}
+		} else if len(password) > passwordColumnWidth-3 {
+			// Normal truncation for medium/large widths
+			truncateAt := passwordColumnWidth - 6
+			if truncateAt < 5 {
+				truncateAt = 5
+			}
+			password = password[:truncateAt] + "..."
 		}
 		
 		typeStr := strings.Title(entry.Type)
